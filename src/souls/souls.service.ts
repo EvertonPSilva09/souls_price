@@ -1,26 +1,46 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateSoulDto } from './dto/create-soul.dto';
 import { UpdateSoulDto } from './dto/update-soul.dto';
+import { Soul } from './entities/soul.entity';
 
 @Injectable()
 export class SoulsService {
-  create(createSoulDto: CreateSoulDto) {
-    return 'This action adds a new soul';
+  constructor(
+    @InjectRepository(Soul)
+    private readonly soulRepository: Repository<Soul>,
+  ) {}
+
+  async create(createSoulDto: CreateSoulDto): Promise<Soul> {
+    const soul = this.soulRepository.create(createSoulDto);
+    return this.soulRepository.save(soul);
   }
 
-  findAll() {
-    return `This action returns all souls`;
+  findAll(): Promise<Soul[]> {
+    return this.soulRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} soul`;
+  findOne(id: number): Promise<Soul> {
+    return this.soulRepository.findOne({ where: { id } }).then((soul) => {
+      if (!soul) {
+        throw new NotFoundException(`Soul with ID ${id} not found`);
+      }
+      return soul;
+    });
   }
 
-  update(id: number, updateSoulDto: UpdateSoulDto) {
-    return `This action updates a #${id} soul`;
+  async update(id: number, updateSoulDto: UpdateSoulDto): Promise<Soul> {
+    await this.soulRepository.update(id, updateSoulDto);
+    return this.soulRepository.findOne({ where: { id } }).then((soul) => {
+      if (!soul) {
+        throw new NotFoundException(`Soul with ID ${id} not found`);
+      }
+      return soul;
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} soul`;
+  async remove(id: number): Promise<void> {
+    await this.soulRepository.delete(id);
   }
 }
